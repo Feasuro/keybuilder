@@ -11,7 +11,7 @@ STEP_DIALOGS_SH_INCLUDED=1
 #          option) and store the chosen device in the global variable `device`.
 # Parameters: none
 # Variables used/set:
-#   backtitle           – application name.
+#   backtitle           – application name and version.
 #   message             – message for the user to display on dialog box
 #   device              – selected device path (set here).
 #   removable_devices[] – associative array filled by `find_devices`.
@@ -67,7 +67,7 @@ pick_device() {
 #          partition layout should be kept.
 # Parameters: none
 # Variables used/set:
-#   backtitle           – application name.
+#   backtitle           – application name and version.
 #   SYSTEM_PART_NAME    – GPT partition name for system partition.
 #   step                – current wizard step.
 # Returns: 0 (calls `handle_exit_code`).
@@ -112,7 +112,7 @@ ask_format_or_keep() {
 #          data, persistence) via a checklist dialog.
 # Parameters: none
 # Globals used/set:
-#   backtitle    – application name.
+#   backtitle    – application name and version.
 #   message      – message for the user to display on dialog box
 #   partitions[] – indexed array (size 4) of flags (0/1) indicating which
 #                  partitions are selected.
@@ -173,7 +173,7 @@ pick_partitions() {
 #          validates it, and updates global `part_sizes` array accordingly.
 # Parameters: none (relies on globals)
 # Globals used/set:
-#   backtitle      – application name.
+#   backtitle      – application name and version.
 #   message        – informational text displayed at the top
 #   device         – target block device (e.g. /dev/sdb)
 #   sector_size    – bytes per sector (from `blockdev --getss`)
@@ -230,7 +230,7 @@ set_partitions_size() {
 #          partition layout that will be applied to the target device.
 # Parameters: none (relies on globals)
 # Globals used/set: none
-#   backtitle   – application name.
+#   backtitle   – application name and version.
 #   message     – informational text displayed on dialog box
 # Returns: 0 (calls `handle_exit_code`).
 # Side‑Effects:
@@ -287,7 +287,7 @@ confirm_format() {
 #          then performs installation according to user selection.
 # Parameters: none (relies on globals)
 # Globals used/set: none
-#   backtitle   – application name.
+#   backtitle   – application name and version.
 # Returns: 0 (calls `handle_exit_code`).
 # Side‑Effects:
 #   * Calls `check_uefi` and terminates script if it fails.

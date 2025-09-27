@@ -10,7 +10,7 @@ HELPER_DIALOGS_SH_INCLUDED=1
 # Purpose: Prompt the user to type a device path manually (advanced mode).
 # Parameters: none
 # Variables used/set:
-#   backtitle   – application name.
+#   backtitle   – application name and version.
 #   device      – variable receiving the selected device path.
 # Returns:
 #   0 – a valid device was entered,
@@ -57,7 +57,7 @@ manual_dev_entry() {
 # Purpose: Prompt the user to unmount partitions manually.
 # Parameters: none
 # Variables used/set:
-#   backtitle   – application name.
+#   backtitle   – application name and version.
 #   device      – variable receiving the selected device path.
 # Returns: 0 – when user presses ok
 # Side‑Effects: Displays `dialog` with a message.
@@ -86,7 +86,7 @@ manually and press OK to continue."
 #          UEFI requirement.
 # Parameters: none
 # Variables used/set:
-#   backtitle   – application name.
+#   backtitle   – application name and version.
 # Returns:
 #   0 – UEFI detected
 #   1 – non-UEFI system
@@ -120,7 +120,7 @@ Please reboot the system into UEFI mode to continue."
 #          user decide how to proceed.
 # Parameters:       $1 – bitmask returned by `detect_target_partitions`.
 # Variables used/set:
-#   backtitle          – application name.
+#   backtitle          – application name and version.
 #   part_nodes[]       – populated by `detect_target_partitions`.
 #   messages[]         – associative array of human‑readable warnings.
 # Returns:
@@ -187,7 +187,7 @@ confirm_detected_partitions() {
 #          receive the bootloader) from a list generated with `lsblk`.
 # Parameters: none
 # Variables used/set:
-#   backtitle          – application name.
+#   backtitle          – application name and version.
 #   device             – block device being examined.
 #   sector_size        – bytes per sector (used for size comparison).
 #   min_sizes[2]       – minimal acceptable size for the system partition.
