@@ -83,12 +83,9 @@ require_root() {
 #   step                – step of the wizard (start with 1)
 #   message             – message for the user to display on dialog box
 #   device              – selected block device (e.g. /dev/sdb)
-#   sector_size         – bytes per sector (from `blockdev --getss`)
-#   offset              – first usable sector (after 1 MiB)
-#   usable_size         – sectors available for partitions (excluding GPT backup)
-#   part_sizes[]        – size of each partition (in sectors)
+#   part_sizes[]        – size of each partition (in megabytes)
 #   part_names[]        – human‑readable GPT labels
-#   min_sizes[]         – minimal partition sizes (in sectors)
+#   min_sizes[]         – minimal partition sizes (in megabytes)
 #   part_nodes[]        – device node names for each partition (e.g. /dev/sdb1)
 #   partitions[]        – indexed array (size 4) of flags (0/1) indicating which
 #                         partitions are selected
@@ -104,11 +101,12 @@ require_root() {
 #     of the wizard.
 # ----------------------------------------------------------------------
 run_loop() {
-   local backtitle step message device sector_size offset usable_size 
+   local backtitle step message device
    local -a partitions part_sizes part_names min_sizes part_nodes
    local -A removable_devices
 
    backtitle="${APPNAME} ${VERSION}"
+   device=''
    message=''
    step=1
 

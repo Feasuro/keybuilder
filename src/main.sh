@@ -11,6 +11,7 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" # installation director
 SHARED_DIR="/usr/share/${APPNAME,,}"                     # location of directory with resources
 GLOBAL_CONFIG_FILE="/etc/${APPNAME,,}.conf"              # location of configuration file.
 USER_CONFIG_FILE="${XDG_CONFIG_HOME:-"${HOME}/.config"}/${APPNAME,,}.conf" # as above (per user)
+MiB=1048576           # 1 MiB in bytes
 
 # ----------------------------------------------------------------------
 # Import modules

@@ -22,13 +22,3 @@ MIN_STORAGE_SIZE=2Gi
 MIN_ESP_SIZE=10Mi
 MIN_SYSTEM_SIZE=5Gi
 MIN_FREE_SIZE=1Gi
-
-# Space at the beginning of a device reserved for bootloader.
-# Default - first 1MiB. Integer value (in bytes) or IEC string.
-# Don't change unless you're sure you know what you're doing!
-PART_TABLE_OFFSET=1Mi
-
-# Number of sectors reserved at the end of device
-# for a backup of GPT partition table.
-# Don't change unless you're sure you know what you're doing!
-GPT_BACKUP_SECTORS=33

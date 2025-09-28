@@ -50,8 +50,7 @@ find_devices() {
 #          sizes, partition names...) based on the configuration globals.
 # Parameters: none
 # Globals used:
-#   GPT_BACKUP_SECTORS – number of sectors consumed by GPT table backup
-#   PART_TABLE_OFFSET  – protected space at the beginning of disk (in bytes)
+#   MiB                – number of bytes in one mebibyte
 #   STORAGE_PART_NAME  – dafault GPT partition name for storage partition
 #   ESP_PART_NAME      – dafault GPT partition name for esp partition
 #   SYSTEM_PART_NAME   – dafault GPT partition name for system partition
@@ -60,39 +59,20 @@ find_devices() {
 #   MIN_SYSTEM_SIZE    – minimal size of system partition
 #   MIN_FREE_SIZE      – minimal size of free space
 # Variables used/set:
-#   device             – selected block device (e.g. /dev/sdb)
-#   sector_size        – bytes per sector (from `blockdev --getss`)
-#   offset             – first usable sector (after 1 MiB)
-#   usable_size        – sectors available for partitions (excluding GPT backup)
 #   part_names[]       – human‑readable GPT labels
-#   min_sizes[]        – minimal partition sizes (in sectors)
+#   min_sizes[]        – minimal partition sizes (in megabytes)
 # Returns: none
 # ----------------------------------------------------------------------
 set_config_vars() {
-   local dev_size
-
-   if ! dev_size="$(blockdev --getsz "${device}")"; then
-      log e "${device} is inaccessible"
-      abort
-   fi
-   if ! sector_size="$(blockdev --getss "${device}")"; then
-      log e "${device} is inaccessible"
-      abort
-   fi
-
-   # values in sectors
-   offset=$(( $(numfmt --from=iec-i "$PART_TABLE_OFFSET") / sector_size ))
-   usable_size=$(( dev_size - offset - GPT_BACKUP_SECTORS ))
-
    # gpt partition names
    part_names=("$STORAGE_PART_NAME" "$ESP_PART_NAME" "$SYSTEM_PART_NAME" "free space")
 
-   # define minimal partition sizes in sectors
+   # define minimal partition sizes in megabytes
    min_sizes=(
-      $(( $(numfmt --from=iec-i "$MIN_STORAGE_SIZE") / sector_size ))
-      $(( $(numfmt --from=iec-i "$MIN_ESP_SIZE") / sector_size ))
-      $(( $(numfmt --from=iec-i "$MIN_SYSTEM_SIZE") / sector_size ))
-      $(( $(numfmt --from=iec-i "$MIN_FREE_SIZE") / sector_size ))
+      $(( $(numfmt --from=iec-i "$MIN_STORAGE_SIZE") / MiB ))
+      $(( $(numfmt --from=iec-i "$MIN_ESP_SIZE") / MiB ))
+      $(( $(numfmt --from=iec-i "$MIN_SYSTEM_SIZE") / MiB ))
+      $(( $(numfmt --from=iec-i "$MIN_FREE_SIZE") / MiB ))
    )
 }
 
@@ -103,7 +83,6 @@ set_config_vars() {
 # Parameters: none
 # Variables used/set:
 #   device             – selected block device (e.g. /dev/sdb)
-#   sector_size        – bytes per sector (from `blockdev --getss`)
 #   part_nodes[]       – device node names for each partition (e.g. /dev/sdb1)
 #   part_sizes[]       – modified with call to `calculate_sizes`
 #   partitions[]       – flags set by dialog `pick_partitions`
@@ -126,34 +105,36 @@ set_partition_vars() {
    done
 
    # populate part_sizes with default weights and 50MiB for part 2
-   calculate_sizes 2 $(( 52428800 / sector_size )) 2 1
+   calculate_sizes 2 50 2 1
 }
 
 # ----------------------------------------------------------------------
 # Usage: calculate_sizes  <w0> <fixed_sz> <w2> <w3>
-# Purpose: Compute the size (in sectors) of each enabled partition based on
-#          specified weights and a fixed size for the second partition.
+# Purpose: Compute the size (in megabytes) of each enabled partition based
+#          on specified weights and a fixed size for the second partition.
 # Parameters:
 #   $1 – weight for partition 0 (storage)
-#   $2 – absolute size (in sectors) for partition 1 (EFI) – fixed
+#   $2 – absolute size (in megabytes) for partition 1 (EFI) – fixed
 #   $3 – weight for partition 2 (system)
 #   $4 – weight for partition 3 (free space / persistence)
 # Variables used/set:
-#   usable_size   – total sectors available for flexible partitions
+#   min_sizes[]   – minimal sizes (in megabytes) for each partition
 #   partitions[]  – flag array (0 = disabled, 1 = enabled)
-#   part_sizes[]  – resulting sizes (in sectors) for each partition
+#   part_sizes[]  – resulting sizes (in megabytes) for each partition
 # Returns:
-#   0 – success,
+#   0 – success
 #   1 – no flexible partitions enabled (ratio = 0)
 #   2 – not enough space for flex partitions (required > available)
 # ----------------------------------------------------------------------
 calculate_sizes() {
    local available required ratio remainder index
 
-   available=$(( usable_size - $2 ))
+   # calculate available space (in MiB) for flexible partitions,
+   # reserve 1MiB at start and end of device
+   available=$(( $(blockdev --getsize64 "${device}") / MiB - $2 - 2 ))
    ratio=$(( $1 * partitions[0] + $3 * partitions[2] + $4 * partitions[3] ))
 
-   # Sanity checks
+   # sanity checks
    if (( ratio == 0 )); then
       log e "No partitions enabled (ratio = 0)."
       return 1
@@ -169,13 +150,13 @@ calculate_sizes() {
       return 2
    fi
 
-   # Distribute space according to weights
+   # distribute space according to weights
    part_sizes[0]=$(( $1 * available * partitions[0] / ratio ))
    part_sizes[1]=$(( $2 * partitions[1] ))
    part_sizes[2]=$(( $3 * available * partitions[2] / ratio ))
    part_sizes[3]=$(( $4 * available * partitions[3] / ratio ))
 
-   # Distribute any remainder left from integer division
+   # distribute any remainder left from integer division
    remainder=$(( available - part_sizes[0] - part_sizes[2] - part_sizes[3] ))
    index=${#partitions[@]}
    while (( remainder > 0 )); do
@@ -187,11 +168,11 @@ calculate_sizes() {
    done
 
    log d "
-   available  = ${available} sectors
+   available  = ${available} MiB
    ratio      = ${ratio}
-   remainder  = ${remainder} sectors
+   remainder  = ${remainder} MiB
    part_sizes = (${part_sizes[0]}, ${part_sizes[1]}, ${part_sizes[2]}, ${part_sizes[3]})
-   sum(flex)  = $((part_sizes[0]+part_sizes[2]+part_sizes[3])) (should equal available)"
+   sum(flex)  = $((part_sizes[0]+part_sizes[2]+part_sizes[3])) MiB (should equal available)"
 }
 
 # ----------------------------------------------------------------------
@@ -202,21 +183,19 @@ calculate_sizes() {
 #   $1 $2 $3 $4 – IEC strings supplied by the user for each enabled partition.
 #                 (e.g. "2Gi", "500Mi", …)
 # Variables used/set:
+#   MiB           – 1 MiB in bytes.
 #   message       – diagnostic/message string displayed later.
-#   sector_size   – bytes per sector.
-#   usable_size   – total sectors available.
 #   partitions[]  – flag array.
-#   part_sizes[]  – current sizes (sectors).
-#   min_sizes[]   – minimal allowed sizes (sectors).
+#   part_sizes[]  – current sizes (MiB).
+#   min_sizes[]   – minimal allowed sizes (MiB).
 #   part_names[]  – human‑readable names (for messages).
 # Returns:
 #   0 – all sizes accepted as‑is,
 #   2 – sizes were adjusted; caller should treat this as “changes made”.
 # ----------------------------------------------------------------------
 validate_sizes() {
-   local sum index size accepted status
+   local sum index size accepted usable_size status
    local -a new_sizes
-   message=''
    accepted=1
 
    # assign new_sizes array with user input
@@ -226,9 +205,9 @@ validate_sizes() {
          continue
       fi
       # check if iec strings match
-      [ "$1" == "$(numfmt --to=iec-i $((part_sizes[index] * sector_size)))" ] || accepted=0
+      [[ $1 == $(numfmt --to=iec-i $((part_sizes[index] * MiB))) ]] || accepted=0
 
-      new_sizes+=( $(( $(numfmt --from=iec-i "$1") / sector_size )) )
+      new_sizes+=( $(( $(numfmt --from=iec-i "$1") / MiB )) )
       shift
    done
 
@@ -239,6 +218,9 @@ validate_sizes() {
 
    # values were correct and accepted by user
    (( accepted )) && return 0
+
+   # get usable size in MiB (total size - 2MiB for gpt overhead)
+   usable_size=$(( $(blockdev --getsize64 "$device") / MiB - 2 ))
 
    # Check if any new size exceeds usable_size
    for index in "${!new_sizes[@]}"; do
@@ -336,19 +318,25 @@ unmount_partitions() {
 #          partition table to be written to the target device.
 # Parameters: none (relies on globals)
 # Variables used/set:
+#   MiB             – 1 MiB in bytes.
 #   device          – the block device (e.g. /dev/sdb)
-#   sector_size     – bytes per sector (from `blockdev --getss`)
-#   offset          – first usable sector (after the protective MBR)
-#   usable_size     – total sectors available.
 #   partitions[]    – flags indicating which partitions are enabled
-#   part_sizes[]    – sizes of each partition in sectors
+#   part_sizes[]    – sizes of all partitions in megabytes
 #   part_names[]    – human‑readable GPT partition labels
 #   part_nodes[]    – device node names for each partition (e.g. /dev/sdb1)
 # Returns: none (does not return a status code.)
 # Side‑Effects: Prints the fully‑assembled sfdisk command to `stdout`.
 # ----------------------------------------------------------------------
 assemble_sfdisk_input() {
-   local start index guid
+   local start index guid sector_size size
+
+   if ! sector_size="$(blockdev --getss "${device}")"; then
+      log e "${device} is inaccessible"
+      abort
+   fi
+
+   # Start allocating partitions after offset (first MiB)
+   start=$(( MiB / sector_size ))
 
    # tell sfdisk we want a fresh GPT table
    cat << EOF
@@ -356,16 +344,13 @@ label: gpt
 device: ${device}
 unit: sectors
 sector-size: ${sector_size}
-first-lba: ${offset}
-last-lba: $(( offset + usable_size - 1 ))
+first-lba: ${start}
+last-lba: $(( $(blockdev --getsz "$device") - 34 ))
 
 EOF
 
-   # Start allocating partitions after offset (first MiB)
-   start=$offset
-
    for index in "${!partitions[@]}"; do
-      (( partitions[index] )) || continue # skip if flag == 0
+      (( partitions[index] )) || continue # skip if flag = 0
 
       # Choose the proper GPT type GUID
       case $index in
@@ -375,11 +360,13 @@ EOF
          3) continue ;; # free space
       esac
 
+      # Convert size from MiB to sectors
+      size=$(( part_sizes[index] * MiB / sector_size ))
       # Print the partition definition line
       printf '%s:start=%s,size=%s,type=%s,name="%s"\n' "${part_nodes[$index]}" \
-         "$start" "${part_sizes[$index]}" "$guid" "${part_names[$index]}"
+         "$start" "$size" "$guid" "${part_names[$index]}"
 
-      (( start += part_sizes[index] ))
+      (( start += size ))
    done
 }
 
@@ -478,9 +465,9 @@ make_filesystems() {
 #          partition, populate appropriate variables.
 # Parameters: none
 # Variables used/set:
+#   MiB                – 1 MiB in bytes.
 #   device             – selected block device (e.g. /dev/sdb)
-#   sector_size        – bytes per sector (from `blockdev --getss`)
-#   min_sizes[]        – minimal partition sizes (in sectors)
+#   min_sizes[]        – minimal partition sizes (in megabytes)
 #   part_names[]       – human‑readable GPT labels
 #   part_nodes[]       – device node names for each partition (e.g. /dev/sdb1)
 #   partitions[]       – partition flags set here
@@ -513,7 +500,7 @@ detect_target_partitions() {
             log w "${NAME} (EFI partition) doesn't have FAT filesystem!"
             continue
          fi
-         if (( SIZE / sector_size < min_sizes[1] )); then
+         if (( SIZE / MiB < min_sizes[1] )); then
             (( ret += 8 ))
             log w "${NAME} (EFI partition) is too small!"
             continue
@@ -524,7 +511,7 @@ detect_target_partitions() {
 
       # system detect
       if [[ $PARTLABEL == "${part_names[2]}" ]]; then
-         if (( SIZE / sector_size < min_sizes[2] )); then
+         if (( SIZE / MiB < min_sizes[2] )); then
             (( ret += 16 ))
             log w "${NAME} is too small for main partition!"
             continue

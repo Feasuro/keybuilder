@@ -46,6 +46,7 @@ pick_device() {
       "${dialog_items[@]}"
       ) || ret=$?
 
+   message=''
    # Process selection
    if (( ret == 0 )); then
       case $result in
@@ -57,7 +58,6 @@ pick_device() {
       [[ -n $device ]] && log i "Chosen device -> ${device}"
    fi
 
-   message=''
    handle_exit_code $ret
 }
 
@@ -143,9 +143,9 @@ pick_partitions() {
       "${dialog_items[@]}"
    ) || ret=$?
 
+   message=''
    # Process selection
    if (( ret == 0 )); then
-      message=''
       partitions=(0 0 0 0)
       for opt in $result; do
          case $opt in
@@ -173,11 +173,11 @@ pick_partitions() {
 #          validates it, and updates global `part_sizes` array accordingly.
 # Parameters: none (relies on globals)
 # Globals used/set:
+#   MiB            – 1 MiB in bytes.
 #   backtitle      – application name and version.
 #   message        – informational text displayed at the top
 #   device         – target block device (e.g. /dev/sdb)
-#   sector_size    – bytes per sector (from `blockdev --getss`)
-#   part_sizes[]   – current partition sizes (in sectors) modified here
+#   part_sizes[]   – current partition sizes (in megabytes) modified here
 #   partitions[]   – flags indicating which partitions are enabled
 #   part_names[]   – human‑readable names for each partition
 # Returns: 0 (calls `handle_exit_code`).
@@ -196,7 +196,7 @@ set_partitions_size() {
    for index in "${!partitions[@]}"; do
       if (( partitions[index] )); then
          (( ++count ))
-         size=$(numfmt --to=iec-i $((part_sizes[index] * sector_size)))
+         size=$(numfmt --to=iec-i $((part_sizes[index] * MiB)))
          dialog_items+=("${device}${count} ${part_names[$index]}" \
             "$count" 1 "$size" "$count" 30 15 0)
       fi
@@ -215,6 +215,7 @@ set_partitions_size() {
       20 60 4 "${dialog_items[@]}"
    ) || ret=$?
 
+   message=''
    # Process input
    if (( ret == 0 )); then
       # shellcheck disable=SC2086
@@ -229,9 +230,8 @@ set_partitions_size() {
 # Purpose: Present the user with a confirmation dialog that shows the exact
 #          partition layout that will be applied to the target device.
 # Parameters: none (relies on globals)
-# Globals used/set: none
+# Variables used/set: none
 #   backtitle   – application name and version.
-#   message     – informational text displayed on dialog box
 # Returns: 0 (calls `handle_exit_code`).
 # Side‑Effects:
 #   * Shows a `dialog` window that warns the user about data loss.

@@ -187,13 +187,13 @@ confirm_detected_partitions() {
 #          receive the bootloader) from a list generated with `lsblk`.
 # Parameters: none
 # Variables used/set:
+#   MiB                – 1 MiB in bytes.
 #   backtitle          – application name and version.
 #   device             – block device being examined.
-#   sector_size        – bytes per sector (used for size comparison).
 #   min_sizes[2]       – minimal acceptable size for the system partition.
 #   partitions[]       – flag array; element 2 will be set to 1 on success.
 #   part_nodes[]       – will receive the chosen partition node.
-#   part_sizes[]       – will receive the chosen partition size (in sectors).
+#   part_sizes[]       – will receive the chosen partition size (in megabytes).
 # Returns:
 #   0 – a suitable partition was selected,
 #   2 – user cancelled the dialog,
@@ -228,7 +228,7 @@ manual_syspart_select() {
 
    # process selection
    size=$(lsblk -lnb -o SIZE "$result")
-   if (( size / sector_size < min_sizes[2] )); then
+   if (( size / MiB < min_sizes[2] )); then
       dialog --keep-tite \
          --backtitle "$backtitle" \
          --title "Warning" \
