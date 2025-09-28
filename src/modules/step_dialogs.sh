@@ -255,11 +255,14 @@ confirm_format() {
    tmpfile=$(mktemp /tmp/sfdisk.XXXXXX)
    assemble_sfdisk_input > "$tmpfile"
 
+   log d "Partitioning scheme:
+$(cat "$tmpfile")"
+
    # show the user what would be done
    msg=$(
       printf "\Z1\ZbProceeding will erase all data on the device!\ZB\Zn\n\n"
       format_device "$tmpfile" 'noact'
-   )
+   ) || true
 
    # show the confirmation dialog
    dialog --keep-tite --colors --no-collapse --extra-button \

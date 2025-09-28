@@ -144,19 +144,32 @@ set_partition_vars() {
 #   part_sizes[]  – resulting sizes (in sectors) for each partition
 # Returns:
 #   0 – success,
-#   1 – no flexible partitions enabled (ratio = 0),
+#   1 – no flexible partitions enabled (ratio = 0)
+#   2 – not enough space for flex partitions (required > available)
 # ----------------------------------------------------------------------
 calculate_sizes() {
-   local available ratio remainder index
+   local available required ratio remainder index
 
    available=$(( usable_size - $2 ))
    ratio=$(( $1 * partitions[0] + $3 * partitions[2] + $4 * partitions[3] ))
 
+   # Sanity checks
    if (( ratio == 0 )); then
       log e "No partitions enabled (ratio = 0)."
       return 1
    fi
 
+   required=0
+   for index in 0 2 3; do
+      (( partitions[index] )) || continue
+      (( required += min_sizes[index] ))
+   done
+   if (( available < required )); then
+      log w "Not enough space for partitions."
+      return 2
+   fi
+
+   # Distribute space according to weights
    part_sizes[0]=$(( $1 * available * partitions[0] / ratio ))
    part_sizes[1]=$(( $2 * partitions[1] ))
    part_sizes[2]=$(( $3 * available * partitions[2] / ratio ))
@@ -184,7 +197,7 @@ calculate_sizes() {
 # ----------------------------------------------------------------------
 # Usage: validate_sizes  <size1> <size2> <size3> <size4>
 # Purpose: Validate user‑entered IEC size strings, enforce minimum sizes,
-#          and adjust the free‑space partition if necessary.
+#          and adjust the free space if possible. Recalculate sizes if necessary.
 # Parameters:
 #   $1 $2 $3 $4 – IEC strings supplied by the user for each enabled partition.
 #                 (e.g. "2Gi", "500Mi", …)
@@ -201,7 +214,7 @@ calculate_sizes() {
 #   2 – sizes were adjusted; caller should treat this as “changes made”.
 # ----------------------------------------------------------------------
 validate_sizes() {
-   local sum index size accepted
+   local sum index size accepted status
    local -a new_sizes
    message=''
    accepted=1
@@ -227,8 +240,16 @@ validate_sizes() {
    # values were correct and accepted by user
    (( accepted )) && return 0
 
+   # Check if any new size exceeds usable_size
+   for index in "${!new_sizes[@]}"; do
+      if (( new_sizes[index] > usable_size )); then
+         message+="\Z1${part_names[index]} size exceeded disk space!\Zn\n"
+         new_sizes[index]=$(( usable_size / 2 ))
+      fi
+   done
+
    # check if sizes are greater than minimum
-   for index in "${!partitions[@]}"; do
+   for index in "${!new_sizes[@]}"; do
       if (( partitions[index] && new_sizes[index] < min_sizes[index])); then
          message+="\Z1${part_names[index]} was to small!\Zn\n"
          new_sizes[index]=${min_sizes[index]}
@@ -244,11 +265,11 @@ validate_sizes() {
    # if free space was chosen we try to adjust it
    if (( partitions[3] )); then
       if (( sum > usable_size && sum - new_sizes[3] < usable_size - min_sizes[3] )); then
-         [[ -z $DEBUG || $DEBUG == 0 ]] || echo "   adjusted free space down" >&2
+         [[ -z $DEBUG || $DEBUG == 0 ]] || echo "   free space reduced" >&2
          (( new_sizes[3] -= sum - usable_size ))
          sum=$usable_size
       elif (( sum < usable_size )); then
-         [[ -z $DEBUG || $DEBUG == 0 ]] || echo "   adjusted free space up" >&2
+         [[ -z $DEBUG || $DEBUG == 0 ]] || echo "   free space expanded" >&2
          (( new_sizes[3] += usable_size - sum ))
          sum=$usable_size
       fi
@@ -262,9 +283,16 @@ validate_sizes() {
    fi
 
    # if partitions don't fit recalculate sizes proportionally
-   message+="\Z1Partitions scaled to fit disk size!\Zn\n"
+   status=0
    # shellcheck disable=SC2068
-   calculate_sizes ${new_sizes[@]}
+   calculate_sizes ${new_sizes[@]} || status=$?
+   if (( status == 0 )); then
+      message+="\Z1Partitions scaled to fit disk size!\Zn\n"
+   elif (( status == 2 )); then
+      message+="\Z1${part_names[1]} was too big!\Zn\n"
+   else
+      message+="\Z1Error calculating sizes!\Zn\n"
+   fi
    return 2
 }
 
