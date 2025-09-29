@@ -9,7 +9,6 @@ license=('GPL-3.0-or-later')
 depends=(
   'dialog'
   'util-linux'
-  'udev'
   'exfatprogs'
   'dosfstools'
   'e2fsprogs'
@@ -46,5 +45,5 @@ EOF
   chmod +x "${pkgdir}/usr/bin/${pkgname}"
 
   mkdir -p "${pkgdir}/usr/share/${pkgname}"
-  cp -r grub "${pkgdir}" "${pkgdir}/usr/share/${pkgname}/"
+  cp -r grub "${pkgdir}/usr/share/${pkgname}/"
 }
