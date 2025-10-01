@@ -76,7 +76,34 @@ install_bootloader() {
    grub-editenv "${grub_env}" set gfxterm_font=unicode
    grub-editenv "${grub_env}" set color_normal=green/black
    grub-editenv "${grub_env}" set color_highlight=black/light-green
+   grub-editenv "${grub_env}" set bg_image=/grub/themes/background.png
    grub-editenv "${grub_env}" set timeout_style=menu
    grub-editenv "${grub_env}" set timeout=10
    grub-editenv "${grub_env}" set default=0
+}
+
+# ----------------------------------------------------------------------
+# Usage: install_themes
+# Purpose: Clones several GRUB themes from GitHub into the target system partition.
+# Parameters: none – function relies on runtime variables
+# Variables used:
+#   target_dir    – mountpoint of the system partition.
+# Returns: none
+# Side‑Effects:
+#   * Clones several Git repositories into the target system partition.
+# ----------------------------------------------------------------------
+install_themes() {
+   local dir="${target_dir}/grub/themes"
+
+   if command -v git >/dev/null 2>&1; then
+      log i "Installing GRUB themes."
+   else
+      log w "Git is not installed. Skipping GRUB themes installation."
+      return
+   fi
+
+   git clone https://github.com/Feasuro/Matrix-GrubTheme.git "${dir}/matrix"
+   git clone https://github.com/Feasuro/Sky-GrubTheme.git "${dir}/sky"
+   git clone https://github.com/Feasuro/Cyber-Security-GrubTheme.git "${dir}/cyber"
+   git clone https://github.com/shvchk/fallout-grub-theme.git "${dir}/fallout"
 }

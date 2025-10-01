@@ -298,25 +298,35 @@ $(cat "$tmpfile")"
 #   * Calls `install_bootloader` to perform actual installation.
 # ----------------------------------------------------------------------
 install_components() {
-   local ret
+   local result ret opt
    ret=0
 
    check_uefi || abort
    setup_target_dir
 
+   # Build dialog items
+   dialog_items=(1 "Install GRUB themes." on)
+
    # show the dialog
-   dialog --keep-tite --extra-button \
+   result=$(dialog --keep-tite --extra-button \
       --backtitle "$backtitle" \
-      --title "Choose components to install" \
+      --title "Install Bootloader" \
       --yes-label "Next" \
       --no-label "Exit" \
       --extra-label "Back" \
-      --yesno "Hit enter to install GRUB" 20 60 \
-      || ret=$?
+      --checklist "Choose optional components to install." 20 60 6 \
+      "${dialog_items[@]}"
+   ) || ret=$?
 
    # Process input
    if (( ret == 0 )); then
       install_bootloader
+
+      for opt in $result; do
+         case $opt in
+            1) install_themes ;;
+         esac
+      done
    fi
 
    handle_exit_code $ret

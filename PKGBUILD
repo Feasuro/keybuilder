@@ -15,6 +15,7 @@ depends=(
   'grub'
   )
 makedepends=('git')
+optdepends=('git: Fetching GRUB skins on installation')
 source=("${pkgname}::git+${url}.git")
 backup=("etc/${pkgname}.conf")
 sha256sums=('SKIP')
