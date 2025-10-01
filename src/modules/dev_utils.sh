@@ -183,7 +183,9 @@ calculate_sizes() {
 #   $1 $2 $3 $4 – IEC strings supplied by the user for each enabled partition.
 #                 (e.g. "2Gi", "500Mi", …)
 # Variables used/set:
+#   DEBUG         – when set, prints diagnostic messages to stderr.
 #   MiB           – 1 MiB in bytes.
+#   device        – selected block device (e.g. /dev/sdb)
 #   message       – diagnostic/message string displayed later.
 #   partitions[]  – flag array.
 #   part_sizes[]  – current sizes (MiB).
@@ -388,25 +390,24 @@ EOF
 # Side‑Effects:
 #   * Executes the external `sfdisk` program, which writes a new partition
 #     table to `$device` (unless `--no-act` is used).
-#   * May write sfdisk output to standard error when `$DEBUG` is enabled.
-#   * Calls `abort` on error, which removes temporary files and exits.
+#   * May write sfdisk output to stdout when `$DEBUG` is enabled.
 # ----------------------------------------------------------------------
 format_device() {
    local input="$1"
    local -a cmd
 
-   cmd=( sfdisk --wipe always --wipe-partitions always "$device" "<${input}" )
+   cmd=( sfdisk --wipe always --wipe-partitions always "$device" )
 
    if [[ ${2:-} == 'noact' ]]; then
-      cmd+=( --no-act '2>&1' )
-   elif [ "$DEBUG" ]; then
-      log i "Executing -> ${cmd[*]}"
+      cmd+=( --no-act )
+      log d "Executing (noact) -> ${cmd[*]}"
+      "${cmd[@]}" <"$input" 2>&1
    else
-      cmd+=( '>/dev/null' )
       log i "Executing -> ${cmd[*]}"
+      quiet "${cmd[@]}" <"$input"
    fi
 
-   eval "${cmd[*]}"
+   return $?
 }
 
 # ----------------------------------------------------------------------
@@ -442,15 +443,15 @@ make_filesystems() {
       case $index in
          0)
             log i "Creating exFAT filesystem on ${part_nodes[$index]}"
-            mkfs.exfat -L "${label::11}" "${part_nodes[$index]}"
+            quiet mkfs.exfat -L "${label::11}" "${part_nodes[$index]}"
             ;; # storage
          1)
             log i "Creating FAT filesystem on ${part_nodes[$index]}"
-            mkfs.fat -n 'EFI' "${part_nodes[$index]}"
+            quiet mkfs.fat -n 'EFI' "${part_nodes[$index]}"
             ;; # esp
          2)
             log i "Creating ext4 filesystem on ${part_nodes[$index]}"
-            mkfs.ext4 -F -L 'casper-rw' "${part_nodes[$index]}"
+            quiet mkfs.ext4 -F -L 'casper-rw' "${part_nodes[$index]}"
             ;; # system
          3)
             continue

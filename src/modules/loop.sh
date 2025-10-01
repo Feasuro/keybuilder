@@ -6,6 +6,60 @@
 LOOP_SH_INCLUDED=1
 
 # ----------------------------------------------------------------------
+# Usage: parse_cmdline "$@"
+# Purpose: Parse command-line arguments and set global variables accordingly.
+# Parameters: all arguments passed to the script.
+# Returns: 0 on success, aborts on invalid arguments.
+# Side-Effects:
+#   * Sets global variables based on options (i.e., DEBUG, LOGLEVEL).
+#   * May call abort on invalid usage.
+# ----------------------------------------------------------------------
+parse_cmdline() {
+   while [[ $# -gt 0 ]]; do
+      case "$1" in
+         -v|--verbose)
+            DEBUG=1
+            LOGLEVEL=4
+            shift
+            ;;
+         -q|--quiet)
+            DEBUG=0
+            LOGLEVEL=1
+            shift
+            ;;
+         -l|--loglevel)
+            if [[ -n $2 && $2 =~ ^[0-4]$ ]]; then
+               LOGLEVEL=$2
+               (( LOGLEVEL < 4 )) && DEBUG=0 || DEBUG=1
+               shift 2
+            else
+               log e "Invalid log level specified. Use a number between 0 and 4."
+               abort
+            fi
+            ;;
+         -V|--version)
+            echo "${APPNAME} version ${VERSION}"
+            app_exit
+            ;;
+         -h|--help)
+            echo "Usage: $0 [options]"
+            echo "  -v, --verbose     Enable verbose output"
+            echo "  -q, --quiet       Suppress non-error output"
+            echo "  -l, --loglevel N  Set log level, takes precendence over -q/-v"
+            echo "                    (0-no output, 1-error, 2-warning, 3-info, 4-debug)"
+            echo "  -V, --version     Show program version"
+            echo "  -h, --help        Show this help message"
+            app_exit
+            ;;
+         *)
+            log e "Unknown option: $1"
+            abort
+            ;;
+      esac
+   done
+}
+
+# ----------------------------------------------------------------------
 # Usage: init_resources
 # Purpose: Locate the shared resources directory and load all global
 #          configuration variables (system‑wide, and per‑user).
@@ -119,9 +173,9 @@ run_loop() {
          4) set_partitions_size ;;
          5) confirm_format ;;
          6) install_components ;;
-         7) log i "Finished."
-            break
-            ;;
+         7) break ;;
       esac
    done
+   log i "Finished."
+   return 0
 }

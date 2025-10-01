@@ -105,7 +105,7 @@ Please reboot the system into UEFI mode to continue."
 
       dialog --keep-tite --colors \
          --backtitle "$backtitle" \
-         --title "Error" \
+         --title "Warning" \
          --msgbox "$msg" 10 50
 
       return 1

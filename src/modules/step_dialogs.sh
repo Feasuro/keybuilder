@@ -54,10 +54,9 @@ pick_device() {
          other) manual_dev_entry || ret=$? ;;
          *) device="$result" ;;
       esac
-
-      [[ -n $device ]] && log i "Chosen device -> ${device}"
    fi
 
+   [[ -n $device ]] && log i "Chosen device -> ${device}"
    handle_exit_code $ret
 }
 
@@ -248,7 +247,7 @@ confirm_format() {
 
    # ensure nothing is mounted before proceeding
    unmount_partitions || {
-      request_manual_unmount || app_exit
+      request_manual_unmount || user_exit
       return $ret
    }
 

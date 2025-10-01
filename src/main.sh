@@ -6,7 +6,7 @@ set -euo pipefail
 # ----------------------------------------------------------------------
 APPNAME="Keybuilder"  # program name.
 VERSION="0.2"         # program version
-DEBUG=${DEBUG:-1}     # if not-null-or-zero causes app to print verbose messages to `stderr`.
+DEBUG=${DEBUG:-0}     # if not-null-or-zero causes app to print verbose messages to stdout/stderr.
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" # installation directory.
 SHARED_DIR="/usr/share/${APPNAME,,}"                     # location of directory with resources
 GLOBAL_CONFIG_FILE="/etc/${APPNAME,,}.conf"              # location of configuration file.
@@ -32,9 +32,11 @@ unset module
 #   * Runs program loop.
 # ----------------------------------------------------------------------
 main() {
+   parse_cmdline "$@"
    require_root "$@"
    init_resources
    run_loop
+   app_exit
 }
 
 main "$@"
