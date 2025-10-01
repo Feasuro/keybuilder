@@ -294,6 +294,7 @@ $(cat "$tmpfile")"
 # Returns: 0 (calls `handle_exit_code`).
 # Side‑Effects:
 #   * Calls `check_uefi` and terminates script if it fails.
+#   * Calls `setup_target_dir` to mount target partitions.
 #   * Shows a `dialog` window.
 #   * Calls `install_bootloader` to perform actual installation.
 # ----------------------------------------------------------------------
@@ -302,6 +303,7 @@ install_components() {
    ret=0
 
    check_uefi || abort
+   setup_target_dir
 
    # show the dialog
    dialog --keep-tite --extra-button \

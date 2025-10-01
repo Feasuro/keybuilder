@@ -54,13 +54,12 @@ log() {
 
 # ----------------------------------------------------------------------
 # Usage: abort
-# Purpose: Clean up temporary files, print a message and exit with status 1.
+# Purpose: Clean up, print a message and exit with status 1.
 # Parameters: none
-# Variables used: $tmpfile (temporary file name)
 # Returns: never returns – calls 'exit 1'.
 # ----------------------------------------------------------------------
 abort() {
-   rm -f "${tmpfile:-}"
+   cleanup
    log w "Application aborted."
    exit 1
 }
@@ -73,6 +72,7 @@ abort() {
 # Returns: exits with status 0.
 # ----------------------------------------------------------------------
 app_exit() {
+   cleanup
    log i "Exiting."
    exit 0
 }
@@ -82,22 +82,21 @@ app_exit() {
 # Purpose: Error‑handling routine invoked automatically on script exit.
 #          It distinguishes between normal termination paths and unexpected errors.
 # Parameters: none (relies on Bash built‑ins)
-# Variables used:
-#   tmpfile   – temporary file name that should be cleaned up on exit
 # Returns:  never returns directly – either logs the error and cleans up,
 #           or does nothing for expected termination functions.
 # Side‑Effects:
 #   * Writes a formatted error message to stderr via `log e`.
-#   * Removes the temporary file referenced by `$tmpfile` (if set).
+#   * Calls `cleanup` to unmount any mounted partitions and remove temporary files.
 # ----------------------------------------------------------------------
 errexit_handler() {
    case ${FUNCNAME[1]} in
       abort|app_exit|main) ;;
-      *) log e "
+      *) 
+         cleanup
+         log e "
    ocurred in function: ${FUNCNAME[1]}
    command:             ${BASH_COMMAND}
    returned status:     $?"
-         rm -f "${tmpfile:-}"
          ;;
    esac
 }
@@ -126,4 +125,28 @@ handle_exit_code() {
          abort
       ;;
    esac
+}
+
+# ----------------------------------------------------------------------
+# Usage: cleanup
+# Purpose: Unmount any mounted partitions and remove temporary files.
+# Parameters: none
+# Variables used:
+#   tmpfile      – path to temporary file (if created)
+#   target_dir[] – mountpoints of the system partition and ESP (if mounted)
+# Returns: none
+# Side‑Effects:
+#   * Unmounts partitions mounted at $target_dir (if mounted).
+#   * Removes temporary file $tmpfile (if it exists).
+# ----------------------------------------------------------------------
+cleanup() {
+   local dir
+
+   rm -f "${tmpfile:-}"
+   for dir in "${target_dir[@]}"; do
+      if mountpoint -q "$dir"; then
+         umount "$dir" || log w "Failed to unmount ${dir}."
+      fi
+      rmdir "$dir"
+   done
 }

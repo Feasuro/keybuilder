@@ -89,6 +89,7 @@ require_root() {
 #   part_nodes[]        – device node names for each partition (e.g. /dev/sdb1)
 #   partitions[]        – indexed array (size 4) of flags (0/1) indicating which
 #                         partitions are selected
+#   target_dir[]        – mountpoints of the system partition and ESP
 #   removable_devices[] – associative array mapping a device path to a
 #                         human‑readable label
 # Returns: int
@@ -102,7 +103,7 @@ require_root() {
 # ----------------------------------------------------------------------
 run_loop() {
    local backtitle step message device
-   local -a partitions part_sizes part_names min_sizes part_nodes
+   local -a partitions part_sizes part_names min_sizes part_nodes target_dir
    local -A removable_devices
 
    backtitle="${APPNAME} ${VERSION}"
