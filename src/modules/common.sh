@@ -52,8 +52,8 @@ log() {
       i|3) level=3; header="${GREEN}INFO${RESET}" ;;
       w|2) level=2; header="${YELLOW}WARNING${RESET}" ;;
       e|1) level=1; header="${RED}ERROR${RESET}" ;;
-      p)   level=3; header="${PINK}PROGRESS${RESET}" ;;
-      *)            header="LOG" ;;
+      p)   level=2; header="${PINK}PROGRESS${RESET}" ;;
+      *)   level=3; header="LOG" ;;
    esac
 
    (( level > LOGLEVEL )) || echo "${header} ${FUNCNAME[1]}: ${msg}" >&2
@@ -96,7 +96,7 @@ app_exit() {
 }
 
 # ----------------------------------------------------------------------
-# Usage: error_handler (used in a trap for unexpected errors)
+# Usage: errexit_handler (used in a trap for unexpected errors)
 # Purpose: Error‑handling routine invoked automatically on script exit.
 #          It distinguishes between normal termination paths and unexpected errors.
 # Parameters: none (relies on Bash built‑ins)
@@ -110,11 +110,11 @@ errexit_handler() {
    case ${FUNCNAME[1]} in
       abort|user_exit|app_exit) ;;
       *) 
-         cleanup
          log e "
    ocurred in function: ${FUNCNAME[1]}
    command:             ${BASH_COMMAND}
    returned status:     $?"
+         cleanup
          ;;
    esac
 }

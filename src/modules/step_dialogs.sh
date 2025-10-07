@@ -308,7 +308,7 @@ install_components() {
    dialog_items=(1 "Install GRUB themes." on)
 
    # show the dialog
-   result=$(dialog --keep-tite --extra-button \
+   result=$(dialog --keep-tite --stdout --extra-button \
       --backtitle "$backtitle" \
       --title "Install Bootloader" \
       --yes-label "Next" \

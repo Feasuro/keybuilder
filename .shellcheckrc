@@ -1,0 +1,4 @@
+shell=bash
+external-sources=true
+source-path=./src
+disable=1090,2128,2034,2154

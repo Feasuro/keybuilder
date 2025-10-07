@@ -169,7 +169,7 @@ confirm_detected_partitions() {
    result=$(dialog --keep-tite --stdout --colors \
       --backtitle "$backtitle" \
       --title "Detected partitions" \
-      --menu "${msg}" 10 60 6 \
+      --menu "${msg}" 12 60 6 \
       "${dialog_items[@]}"
    ) || return 2
 
@@ -213,6 +213,7 @@ manual_syspart_select() {
       eval "$line"
       [[ $TYPE == 'part' ]] || continue
       NAME="/dev/${NAME}"
+      # shellcheck disable=SC2153
       label=$(printf "%-10s%5s|%8s %-10s|%20s" \
          "$PARTLABEL" "$SIZE" "${FSTYPE:-'no fs'}" "$LABEL" "$PARTTYPENAME")
       dialog_items+=("$NAME" "$label")

@@ -12,6 +12,7 @@ SHARED_DIR="/usr/share/${APPNAME,,}"                     # location of directory
 GLOBAL_CONFIG_FILE="/etc/${APPNAME,,}.conf"              # location of configuration file.
 USER_CONFIG_FILE="${XDG_CONFIG_HOME:-"${HOME}/.config"}/${APPNAME,,}.conf" # as above (per user)
 MiB=1048576           # 1 MiB in bytes
+readonly APPNAME VERSION BASE_DIR GLOBAL_CONFIG_FILE USER_CONFIG_FILE MiB
 
 # ----------------------------------------------------------------------
 # Import modules

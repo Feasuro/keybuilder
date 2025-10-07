@@ -24,7 +24,7 @@ parse_cmdline() {
             ;;
          -q|--quiet)
             DEBUG=0
-            LOGLEVEL=1
+            LOGLEVEL=0
             shift
             ;;
          -l|--loglevel)
@@ -38,13 +38,13 @@ parse_cmdline() {
             fi
             ;;
          -V|--version)
-            echo "${APPNAME} version ${VERSION}"
+            echo "${APPNAME} v${VERSION}"
             app_exit
             ;;
          -h|--help)
             echo "Usage: $0 [options]"
             echo "  -v, --verbose     Enable verbose output"
-            echo "  -q, --quiet       Suppress non-error output"
+            echo "  -q, --quiet       Suppress all output"
             echo "  -l, --loglevel N  Set log level, takes precendence over -q/-v"
             echo "                    (0-no output, 1-error, 2-warning, 3-info, 4-debug)"
             echo "  -V, --version     Show program version"
@@ -83,6 +83,7 @@ else
    log e "Couldn't find shared directory."
    abort
 fi
+readonly SHARED_DIR
 
 # Import configuration
 if [[ -f "${BASE_DIR}/config.sh" ]]; then
@@ -161,6 +162,7 @@ run_loop() {
    local -A removable_devices
 
    backtitle="${APPNAME} ${VERSION}"
+   readonly backtitle
    device=''
    message=''
    step=1

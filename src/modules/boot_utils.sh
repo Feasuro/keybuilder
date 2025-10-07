@@ -21,15 +21,18 @@ BOOT_UTILS_SH_INCLUDED=1
 # ----------------------------------------------------------------------
 setup_target_dir() {
    # default mountpoints
-   target_dir=( '/tmp/system' '/tmp/esp' )
+   target_dir=( "$(mktemp -d /tmp/system.XXXXXX)" "$(mktemp -d /tmp/esp.XXXXXX )" )
    # real mountpoints
-   for i in 0 1; do
-      target_dir[i]=$(findmnt -ln -o TARGET "${part_nodes[$i]}" 2>/dev/null || {
-         mkdir -p "${target_dir[$i]}" &&
-         mount "${part_nodes[$i]}" "${target_dir[$i]}" &&
-         echo "${target_dir[$i]}"
-      })
-   done
+   target_dir[0]=$(findmnt -ln -o TARGET "${part_nodes[2]}" 2>/dev/null || {
+      mkdir -p "${target_dir[0]}" &&
+      mount "${part_nodes[2]}" "${target_dir[0]}" &&
+      echo "${target_dir[0]}"
+   })
+   target_dir[1]=$(findmnt -ln -o TARGET "${part_nodes[1]}" 2>/dev/null || {
+      mkdir -p "${target_dir[1]}" &&
+      mount "${part_nodes[1]}" "${target_dir[1]}" &&
+      echo "${target_dir[1]}"
+   })
 }
 
 # ----------------------------------------------------------------------
